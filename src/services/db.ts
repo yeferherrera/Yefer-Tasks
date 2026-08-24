@@ -92,13 +92,16 @@ export async function eliminarItems(uid: string, ids: string[]): Promise<void> {
 export async function completarYRecurrente(
   uid: string,
   item: Item,
-): Promise<void> {
+): Promise<string | null> {
   if (!item.recurrente) {
     await actualizarItem(uid, item.id, {
       completado: true,
       completadoEn: Date.now(),
     });
-    return;
+    return null;
+  }
+  if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) {
+    throw new Error('Fecha inválida para elemento recurrente');
   }
   const [y, m, d] = item.fecha.split('-').map(Number);
   const proximo = new Date(y, m - 1 + 1, 1);
@@ -115,18 +118,20 @@ export async function completarYRecurrente(
     completado: true,
     completadoEn: Date.now(),
   });
-  batch.set(doc(refItems(uid)), {
+  const nuevoItemRef = doc(refItems(uid));
+  batch.set(nuevoItemRef, {
     tipo: item.tipo,
     titulo: item.titulo,
     monto: item.monto ?? null,
     fecha: fechaNueva,
-    horaRecordatorio: item.horaRecordatorio,
+    horaRecordatorio: item.horaRecordatorio ?? '09:00',
     completado: false,
     recurrente: true,
     notas: item.notas ?? null,
     creadoEn: Date.now(),
-  } as ItemSinId);
+  });
   await batch.commit();
+  return nuevoItemRef.id;
 }
 
 export async function crearIngreso(
@@ -211,11 +216,11 @@ export async function desmarcarCuotaPagada(
   numeroCuota: number,
   cuotas: CuotaIndividual[],
 ): Promise<void> {
-  const actualizadas = cuotas.map(c =>
-    c.numero === numeroCuota
-      ? {...c, pagado: false, pagadoEn: undefined}
-      : c,
-  );
+  const actualizadas = cuotas.map(c => {
+    if (c.numero !== numeroCuota) return c;
+    const {pagadoEn: _removed, ...rest} = c;
+    return {...rest, pagado: false};
+  });
   await updateDoc(doc(getFirestore(), 'users', uid, 'cuotas', planId), {
     cuotas: actualizadas,
     completado: false,

@@ -80,11 +80,12 @@ export interface PlanCuotas {
 
 export type PlanCuotasSinId = Omit<PlanCuotas, 'id'>;
 
-export const VERSION_APP = '1.2';
+export const VERSION_APP = '2.0';
 export const CHANGELOG = [
-  '📦 Sistema de Cuotas: crea planes de pago con número de cuotas',
-  '💰 Interés mensual: calcula automáticamente con interés compuesto',
-  '📊 Barra de progreso: visualiza cuánto has pagado de cada deuda',
-  '🔔 Notificación de cuotas: aviso cuando vence la cuota del mes',
-  '🎨 Diseño mejorado en todas las pantallas',
+  '🔧 Tareas: ahora se guardan correctamente sin errores',
+  '✅ Completar pagos: funciona sin problemas',
+  '🔔 Notificaciones: se cancelan al completar, se programan para el próximo mes',
+  '🛡️ Robustez: protección contra datos corruptos en Firestore',
+  '🎨 Mejoras UX: botones con iconos, mejor feedback visual',
+  '🚀 Versión estable de producción',
 ];

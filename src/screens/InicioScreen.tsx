@@ -12,6 +12,10 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth} from '../context/AuthContext';
 import {escucharItems, completarYRecurrente, actualizarItem, eliminarItems} from '../services/db';
 import {sincronizarPendientesConBurbuja} from '../services/ventanaFlotante';
+import {
+  cancelarRecordatorios,
+  programarRecordatorios,
+} from '../services/notificaciones';
 import {TarjetaItem} from '../components/TarjetaItem';
 import {EstadoVacio} from '../components/EstadoVacio';
 import {colores, tipografia, espaciado, radios, sombras} from '../theme';
@@ -97,8 +101,25 @@ export function InicioScreen({navigation}: any) {
           text: 'Completar',
           onPress: async () => {
             try {
-              await completarYRecurrente(usuario.uid, item);
-            } catch {
+              const nuevoId = await completarYRecurrente(usuario.uid, item);
+              await cancelarRecordatorios(item);
+              if (nuevoId && item.recurrente) {
+                const itemCopia: Item = {
+                  ...item,
+                  id: nuevoId,
+                  completado: false,
+                  fecha: (() => {
+                    const [y, m, d] = item.fecha.split('-').map(Number);
+                    const proximo = new Date(y, m, 1);
+                    const ultimoDia = new Date(proximo.getFullYear(), proximo.getMonth() + 1, 0).getDate();
+                    const diaFinal = Math.min(d, ultimoDia);
+                    return `${proximo.getFullYear()}-${String(proximo.getMonth() + 1).padStart(2, '0')}-${String(diaFinal).padStart(2, '0')}`;
+                  })(),
+                };
+                await programarRecordatorios(itemCopia);
+              }
+            } catch (e) {
+              console.error('Error al completar item:', e);
               Alert.alert('Error', 'No se pudo completar. Intenta de nuevo.');
             }
           },
@@ -173,14 +194,14 @@ export function InicioScreen({navigation}: any) {
 
       {modoSeleccion && (
         <View style={styles.barraSeleccion}>
-          <TouchableOpacity onPress={cancelarSeleccion}>
-            <Text style={styles.cancelarSeleccion}>✕</Text>
+          <TouchableOpacity onPress={cancelarSeleccion} style={styles.botonBarra}>
+            <Text style={styles.cancelarSeleccion}>✕ Cancelar</Text>
           </TouchableOpacity>
           <Text style={styles.contadorSeleccion}>
             {seleccion.length} seleccionado(s)
           </Text>
-          <TouchableOpacity onPress={eliminarSeleccionados}>
-            <Text style={styles.eliminarSeleccion}>🗑</Text>
+          <TouchableOpacity onPress={eliminarSeleccionados} style={styles.botonBarra}>
+            <Text style={styles.eliminarSeleccion}>🗑️ Eliminar</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -448,14 +469,20 @@ const styles = StyleSheet.create({
     borderBottomColor: colores.primarioBorde,
   },
   cancelarSeleccion: {
-    fontSize: 18,
+    fontSize: 14,
     color: colores.primarioOscuro,
     fontWeight: '700',
+  },
+  botonBarra: {
+    paddingHorizontal: espaciado.md,
+    paddingVertical: espaciado.sm,
+    borderRadius: radios.boton,
+    backgroundColor: colores.primarioSuave,
   },
   contadorSeleccion: {
     fontWeight: '700',
     color: colores.primarioOscuro,
     fontSize: 14,
   },
-  eliminarSeleccion: {fontSize: 20},
+  eliminarSeleccion: {fontSize: 14, fontWeight: '700', color: colores.peligroTexto},
 });

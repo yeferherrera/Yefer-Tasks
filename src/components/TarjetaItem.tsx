@@ -98,6 +98,11 @@ export function TarjetaItem({
             </Pressable>
           </View>
         )}
+        {!item.completado && (
+          <Pressable style={styles.botonEditar} onPress={onEditar}>
+            <Text style={styles.textoEditar}>✏️</Text>
+          </Pressable>
+        )}
       </View>
 
       {esPago && item.monto != null && (
@@ -159,5 +164,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   textoAccion: {fontSize: 12, fontWeight: '700', color: colores.primarioOscuro},
+  botonEditar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colores.fondoAcento,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: espaciado.sm,
+  },
+  textoEditar: {fontSize: 16},
   monto: {...tipografia.cuerpoNegrita, color: colores.texto},
 });

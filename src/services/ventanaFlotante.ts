@@ -27,11 +27,17 @@ export function pedirPermisoOverlay(): Promise<boolean> {
 }
 
 export async function mostrarBurbujaFlotante(): Promise<void> {
-  if (nativo) await nativo.mostrarBurbuja();
+  if (!nativo) return;
+  try {
+    await nativo.mostrarBurbuja();
+  } catch {}
 }
 
 export async function ocultarBurbujaFlotante(): Promise<void> {
-  if (nativo) await nativo.ocultarBurbuja();
+  if (!nativo) return;
+  try {
+    await nativo.ocultarBurbuja();
+  } catch {}
 }
 
 /**

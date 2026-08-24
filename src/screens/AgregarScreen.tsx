@@ -20,7 +20,7 @@ import {
 } from '../services/notificaciones';
 import {colores, tipografia, espaciado, radios, sombras} from '../theme';
 import {hoyISO} from '../utils/fechas';
-import type {Item, TipoItem} from '../types';
+import type {Item, TipoItem, ItemSinId} from '../types';
 
 export function AgregarScreen({navigation, route}: any) {
   const {usuario} = useAuth();
@@ -49,56 +49,47 @@ export function AgregarScreen({navigation, route}: any) {
       return;
     }
     const montoNum = monto.trim() === '' ? null : Number(monto.replace(/[^\d]/g, ''));
-    if (tipo === 'pago' && (montoNum == null || isNaN(montoNum))) {
+    if (tipo === 'pago' && (montoNum == null || montoNum === 0)) {
       Alert.alert('Falta el valor', 'Escribe cuánto debes pagar (en pesos).');
       return;
     }
 
     setGuardando(true);
     try {
-      await pedirPermisoNotificaciones();
+      try {
+        await pedirPermisoNotificaciones();
+      } catch {
+        // Permiso de notificación falló, continuar sin notificaciones
+      }
       let id: string;
+      const itemData: ItemSinId = {
+        tipo,
+        titulo: titulo.trim(),
+        fecha,
+        horaRecordatorio: hora,
+        recurrente,
+        notas: notas.trim() || undefined,
+        creadoEn: Date.now(),
+        completado: false,
+        monto: tipo === 'pago' ? (montoNum ?? 0) : undefined,
+      };
       if (itemEditando) {
         await cancelarRecordatorios(itemEditando);
         id = itemEditando.id;
-        await actualizarItem(usuario.uid, id, {
-          tipo,
-          titulo: titulo.trim(),
-          monto: montoNum ?? undefined,
-          fecha,
-          horaRecordatorio: hora,
-          recurrente,
-          notas: notas.trim(),
-        });
+        await actualizarItem(usuario.uid, id, itemData);
       } else {
-        id = await crearItem(usuario.uid, {
-          tipo,
-          titulo: titulo.trim(),
-          monto: montoNum ?? undefined,
-          fecha,
-          horaRecordatorio: hora,
-          completado: false,
-          recurrente,
-          notas: notas.trim(),
-          creadoEn: Date.now(),
-        });
+        id = await crearItem(usuario.uid, itemData);
       }
 
-      await programarRecordatorios({
-        id,
-        tipo,
-        titulo: titulo.trim(),
-        monto: montoNum ?? undefined,
-        fecha,
-        horaRecordatorio: hora,
-        completado: false,
-        recurrente,
-        notas: notas.trim(),
-        creadoEn: Date.now(),
-      });
+      try {
+        await programarRecordatorios({...itemData, id} as Item);
+      } catch {
+        // Notificaciones fallaron, el item ya se guardó
+      }
 
       navigation.goBack();
-    } catch {
+    } catch (e) {
+      console.error('Error al guardar item:', e);
       Alert.alert('Error', 'No se pudo guardar. Revisa tu conexión e intenta otra vez.');
     } finally {
       setGuardando(false);
@@ -240,13 +231,13 @@ export function AgregarScreen({navigation, route}: any) {
           onPress={guardar}
           disabled={guardando}>
           <Text style={styles.botonTexto}>
-            {guardando ? 'Guardando...' : itemEditando ? 'Guardar cambios' : 'Guardar'}
+            {guardando ? '⏳ Guardando...' : itemEditando ? '💾 Guardar cambios' : '💾 Guardar'}
           </Text>
         </TouchableOpacity>
 
         {itemEditando && (
           <TouchableOpacity style={styles.botonBorrar} onPress={confirmarEliminar}>
-            <Text style={styles.botonBorrarTexto}>🗑 Eliminar</Text>
+            <Text style={styles.botonBorrarTexto}>🗑️ Eliminar este item</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

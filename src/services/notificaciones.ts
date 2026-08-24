@@ -38,7 +38,10 @@ export async function pedirPermisoNotificaciones(): Promise<boolean> {
  * Devuelve los IDs de las alarmas creadas (se guardan para poder cancelarlas).
  */
 export async function programarRecordatorios(item: Item): Promise<string[]> {
-  const [horaStr, minutoStr] = item.horaRecordatorio.split(':').map(Number);
+  if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) return [];
+  const horaRecordatorio = item.horaRecordatorio ?? '09:00';
+  if (!/^\d{2}:\d{2}$/.test(horaRecordatorio)) return [];
+  const [horaStr, minutoStr] = horaRecordatorio.split(':').map(Number);
   const ids: string[] = [];
 
   const [y, m, d] = item.fecha.split('-').map(Number);
@@ -66,7 +69,7 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
           objetivo.etiqueta === '¡VENCE HOY!'
             ? `⏰ ${esPago ? 'Pago' : 'Tarea'} vence HOY`
             : `📅 ${esPago ? 'Pago' : 'Tarea'} ${objetivo.etiqueta}`,
-        body: `${item.titulo}${item.monto ? ` — $ ${item.monto.toLocaleString('es-CO')}` : ''}`,
+        body: `${item.titulo}${item.monto != null ? ` — $ ${item.monto.toLocaleString('es-CO')}` : ''}`,
         android: {
           channelId: CANAL_ID,
           smallIcon: 'ic_launcher',
@@ -82,6 +85,7 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
 
 /** Cancela las alarmas de un item (al editar o eliminar) */
 export async function cancelarRecordatorios(item: Item): Promise<void> {
+  if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) return;
   const [y, m, d] = item.fecha.split('-').map(Number);
   await notifee.cancelTriggerNotification(`${item.id}-${d}`);
   await notifee.cancelTriggerNotification(`${item.id}-${d - 1}`);

@@ -79,7 +79,7 @@ function BotonAgregar({navigation}: any) {
   return (
     <TouchableOpacity
       onPress={() => navigation.navigate('Agregar')}
-      activeOpacity={0.85}
+      activeOpacity={0.8}
       style={{
         position: 'absolute',
         bottom: 64 + insets.bottom + 20,
@@ -92,8 +92,8 @@ function BotonAgregar({navigation}: any) {
         alignItems: 'center',
         ...sombras.lg,
       }}>
-      <Text style={{color: '#FFF', fontSize: 32, marginTop: -2, fontWeight: '300'}}>
-        +
+      <Text style={{color: '#FFF', fontSize: 28, marginTop: -1, fontWeight: '700'}}>
+        ＋
       </Text>
     </TouchableOpacity>
   );
