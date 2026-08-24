@@ -143,8 +143,10 @@ export async function notificarItem(item: Item): Promise<void> {
  *  - El mismo día (heads-up)
  */
 export async function programarRecordatorios(item: Item): Promise<string[]> {
+  if (!item.horaRecordatorio || !/^\d{2}:\d{2}$/.test(item.horaRecordatorio)) return [];
   const [horaStr, minutoStr] = item.horaRecordatorio.split(':').map(Number);
   const ids: string[] = [];
+  if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) return [];
   const [y, m, d] = item.fecha.split('-').map(Number);
 
   const objetivos = [
@@ -189,6 +191,7 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
 }
 
 export async function cancelarRecordatorios(item: Item): Promise<void> {
+  if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) return;
   const [y, m, d] = item.fecha.split('-').map(Number);
   await notifee.cancelTriggerNotification(`${item.id}-${d}`);
   await notifee.cancelTriggerNotification(`${item.id}-${d - 1}`);

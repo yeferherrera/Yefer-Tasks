@@ -101,7 +101,11 @@ export async function completarYRecurrente(
     return null;
   }
   if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) {
-    throw new Error('Fecha inválida para elemento recurrente');
+    await actualizarItem(uid, item.id, {
+      completado: true,
+      completadoEn: Date.now(),
+    });
+    return null;
   }
   const [y, m, d] = item.fecha.split('-').map(Number);
   const proximo = new Date(y, m - 1 + 1, 1);

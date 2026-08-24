@@ -56,36 +56,46 @@ export function AgregarScreen({navigation, route}: any) {
 
     setGuardando(true);
     try {
-      try {
-        await pedirPermisoNotificaciones();
-      } catch {
-        // Permiso de notificación falló, continuar sin notificaciones
-      }
+      pedirPermisoNotificaciones().catch(() => {});
+
       let id: string;
-      const itemData: ItemSinId = {
+      const camposBase: Record<string, unknown> = {
         tipo,
         titulo: titulo.trim(),
         fecha,
         horaRecordatorio: hora,
         recurrente,
-        notas: notas.trim() || undefined,
         creadoEn: Date.now(),
-        completado: false,
-        monto: tipo === 'pago' ? (montoNum ?? 0) : undefined,
       };
-      if (itemEditando) {
-        await cancelarRecordatorios(itemEditando);
-        id = itemEditando.id;
-        await actualizarItem(usuario.uid, id, itemData);
-      } else {
-        id = await crearItem(usuario.uid, itemData);
+      if (notas.trim()) {
+        camposBase.notas = notas.trim();
+      }
+      if (tipo === 'pago' && montoNum != null) {
+        camposBase.monto = montoNum;
       }
 
-      try {
-        await programarRecordatorios({...itemData, id} as Item);
-      } catch {
-        // Notificaciones fallaron, el item ya se guardó
+      if (itemEditando) {
+        id = itemEditando.id;
+        await actualizarItem(usuario.uid, id, camposBase);
+        cancelarRecordatorios(itemEditando).catch(() => {});
+      } else {
+        camposBase.completado = false;
+        id = await crearItem(usuario.uid, camposBase as ItemSinId);
       }
+
+      const itemCompleto: Item = {
+        id,
+        tipo,
+        titulo: titulo.trim(),
+        fecha,
+        horaRecordatorio: hora,
+        recurrente,
+        creadoEn: Date.now(),
+        completado: false,
+        ...(notas.trim() ? {notas: notas.trim()} : {}),
+        ...(tipo === 'pago' && montoNum != null ? {monto: montoNum} : {}),
+      };
+      programarRecordatorios(itemCompleto).catch(() => {});
 
       navigation.goBack();
     } catch (e) {
@@ -104,10 +114,8 @@ export function AgregarScreen({navigation, route}: any) {
         style: 'destructive',
         onPress: async () => {
           if (!usuario || !itemEditando) return;
-          try {
-            await cancelarRecordatorios(itemEditando);
-            await eliminarItem(usuario.uid, itemEditando.id);
-          } catch {}
+          cancelarRecordatorios(itemEditando).catch(() => {});
+          await eliminarItem(usuario.uid, itemEditando.id).catch(() => {});
           navigation.goBack();
         },
       },

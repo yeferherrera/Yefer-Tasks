@@ -102,21 +102,26 @@ export function InicioScreen({navigation}: any) {
           onPress: async () => {
             try {
               const nuevoId = await completarYRecurrente(usuario.uid, item);
-              await cancelarRecordatorios(item);
+              cancelarRecordatorios(item).catch(() => {});
               if (nuevoId && item.recurrente) {
-                const itemCopia: Item = {
-                  ...item,
+                const [y, m, d] = item.fecha.split('-').map(Number);
+                const proximo = new Date(y, m, 1);
+                const ultimoDia = new Date(proximo.getFullYear(), proximo.getMonth() + 1, 0).getDate();
+                const diaFinal = Math.min(d, ultimoDia);
+                const fechaNueva = `${proximo.getFullYear()}-${String(proximo.getMonth() + 1).padStart(2, '0')}-${String(diaFinal).padStart(2, '0')}`;
+                const nuevoItem: Item = {
                   id: nuevoId,
+                  tipo: item.tipo,
+                  titulo: item.titulo,
+                  fecha: fechaNueva,
+                  horaRecordatorio: item.horaRecordatorio,
                   completado: false,
-                  fecha: (() => {
-                    const [y, m, d] = item.fecha.split('-').map(Number);
-                    const proximo = new Date(y, m, 1);
-                    const ultimoDia = new Date(proximo.getFullYear(), proximo.getMonth() + 1, 0).getDate();
-                    const diaFinal = Math.min(d, ultimoDia);
-                    return `${proximo.getFullYear()}-${String(proximo.getMonth() + 1).padStart(2, '0')}-${String(diaFinal).padStart(2, '0')}`;
-                  })(),
+                  recurrente: true,
+                  creadoEn: Date.now(),
+                  ...(item.monto != null ? {monto: item.monto} : {}),
+                  ...(item.notas ? {notas: item.notas} : {}),
                 };
-                await programarRecordatorios(itemCopia);
+                programarRecordatorios(nuevoItem).catch(() => {});
               }
             } catch (e) {
               console.error('Error al completar item:', e);
@@ -164,7 +169,8 @@ export function InicioScreen({navigation}: any) {
             try {
               await eliminarItems(usuario.uid, seleccion);
               cancelarSeleccion();
-            } catch {
+            } catch (e) {
+              console.error('Error al eliminar:', e);
               Alert.alert('Error', 'No se pudieron eliminar.');
             }
           },
