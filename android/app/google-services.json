@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "125755708414",
+    "project_id": "yefer-tasks",
+    "storage_bucket": "yefer-tasks.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:125755708414:android:4313e28b4da961739166af",
+        "android_client_info": {
+          "package_name": "com.yefertask"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBplOMJbDLvyxdkWDzwAawgg-vCqKZEQPA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
