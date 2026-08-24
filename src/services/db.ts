@@ -10,7 +10,15 @@ import {
   orderBy,
   writeBatch,
 } from '@react-native-firebase/firestore';
-import type {Item, ItemSinId, Ingreso, IngresoSinId} from '../types';
+import type {
+  Item,
+  ItemSinId,
+  Ingreso,
+  IngresoSinId,
+  PlanCuotas,
+  PlanCuotasSinId,
+  CuotaIndividual,
+} from '../types';
 
 function refItems(uid: string) {
   return collection(getFirestore(), 'users', uid, 'items');
@@ -139,4 +147,81 @@ export async function actualizarIngreso(
 
 export async function eliminarIngreso(uid: string, id: string): Promise<void> {
   await deleteDoc(doc(getFirestore(), 'users', uid, 'ingresos', id));
+}
+
+function refCuotas(uid: string) {
+  return collection(getFirestore(), 'users', uid, 'cuotas');
+}
+
+export function escucharCuotas(
+  uid: string,
+  alCambiar: (planes: PlanCuotas[]) => void,
+  alError: (e: Error) => void,
+): () => void {
+  return onSnapshot(
+    query(refCuotas(uid), orderBy('creadoEn', 'desc')),
+    snapshot => {
+      const planes = snapshot.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as PlanCuotasSinId),
+      }));
+      alCambiar(planes);
+    },
+    alError,
+  );
+}
+
+export async function crearPlanCuotas(
+  uid: string,
+  plan: PlanCuotasSinId,
+): Promise<string> {
+  const ref = await addDoc(refCuotas(uid), plan);
+  return ref.id;
+}
+
+export async function actualizarPlanCuotas(
+  uid: string,
+  id: string,
+  cambios: Partial<PlanCuotasSinId>,
+): Promise<void> {
+  await updateDoc(doc(getFirestore(), 'users', uid, 'cuotas', id), cambios);
+}
+
+export async function marcarCuotaPagada(
+  uid: string,
+  planId: string,
+  numeroCuota: number,
+  cuotas: CuotaIndividual[],
+): Promise<void> {
+  const actualizadas = cuotas.map(c =>
+    c.numero === numeroCuota
+      ? {...c, pagado: true, pagadoEn: Date.now()}
+      : c,
+  );
+  const todasPagadas = actualizadas.every(c => c.pagado);
+  await updateDoc(doc(getFirestore(), 'users', uid, 'cuotas', planId), {
+    cuotas: actualizadas,
+    completado: todasPagadas,
+  });
+}
+
+export async function desmarcarCuotaPagada(
+  uid: string,
+  planId: string,
+  numeroCuota: number,
+  cuotas: CuotaIndividual[],
+): Promise<void> {
+  const actualizadas = cuotas.map(c =>
+    c.numero === numeroCuota
+      ? {...c, pagado: false, pagadoEn: undefined}
+      : c,
+  );
+  await updateDoc(doc(getFirestore(), 'users', uid, 'cuotas', planId), {
+    cuotas: actualizadas,
+    completado: false,
+  });
+}
+
+export async function eliminarPlanCuotas(uid: string, id: string): Promise<void> {
+  await deleteDoc(doc(getFirestore(), 'users', uid, 'cuotas', id));
 }

@@ -1,4 +1,12 @@
-import type {Item, EstadoItem, ItemConEstado, BalanceMes} from '../types';
+import type {
+  Item,
+  EstadoItem,
+  ItemConEstado,
+  BalanceMes,
+  PlanCuotas,
+  CuotaIndividual,
+} from '../types';
+import {hoyISO} from '../utils/fechas';
 
 export function calcularEstadoItem(item: Item, hoy: string): ItemConEstado {
   if (item.completado) {
@@ -71,4 +79,87 @@ export function colorearEstado(estado: EstadoItem) {
     case 'completado':
       return {fondo: '#DCFCE7', texto: '#16A34A', borde: '#86EFAC', chip: 'PAGADO'};
   }
+}
+
+export function calcularValorCuota(
+  totalDeuda: number,
+  numCuotas: number,
+  tasaInteresMensual: number,
+): {valorCuota: number; totalConInteres: number; cuotas: CuotaIndividual[]} {
+  const r = tasaInteresMensual / 100;
+  let valorCuota: number;
+  let totalConInteres: number;
+
+  if (r === 0) {
+    valorCuota = Math.round(totalDeuda / numCuotas);
+    totalConInteres = totalDeuda;
+  } else {
+    const factor = Math.pow(1 + r, numCuotas);
+    valorCuota = Math.round((totalDeuda * r * factor) / (factor - 1));
+    totalConInteres = valorCuota * numCuotas;
+  }
+
+  const cuotas: CuotaIndividual[] = [];
+  let saldo = totalDeuda;
+
+  for (let i = 1; i <= numCuotas; i++) {
+    const interesMes = Math.round(saldo * r);
+    const capitalMes = valorCuota - interesMes;
+    const [y, m] = getFechaMesOffset(new Date(), i - 1);
+    const fecha = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+
+    cuotas.push({
+      numero: i,
+      valor: i === numCuotas ? saldo + interesMes : valorCuota,
+      capital: i === numCuotas ? saldo : capitalMes,
+      interes: interesMes,
+      fecha,
+      pagado: false,
+    });
+
+    saldo -= capitalMes;
+  }
+
+  return {valorCuota, totalConInteres, cuotas};
+}
+
+function getFechaMesOffset(base: Date, offset: number): [number, number] {
+  const y = base.getFullYear();
+  const m = base.getMonth();
+  const totalMes = m + offset;
+  const anio = y + Math.floor(totalMes / 12);
+  const mes = ((totalMes % 12) + 12) % 12;
+  return [anio, mes];
+}
+
+export function resumenPlan(plan: PlanCuotas) {
+  const pagadas = plan.cuotas.filter(c => c.pagado);
+  const totalPagado = pagadas.reduce((s, c) => s + c.valor, 0);
+  const capitalPagado = pagadas.reduce((s, c) => s + c.capital, 0);
+  const interesPagado = pagadas.reduce((s, c) => s + c.interes, 0);
+  const proximaPendiente = plan.cuotas.find(c => !c.pagado);
+  const porcentaje = Math.round((totalPagado / plan.totalConInteres) * 100);
+
+  return {
+    pagadas: pagadas.length,
+    total: plan.cuotas.length,
+    totalPagado,
+    capitalPagado,
+    interesPagado,
+    restante: plan.totalConInteres - totalPagado,
+    proximaPendiente,
+    porcentaje,
+    completado: pagadas.length === plan.cuotas.length,
+  };
+}
+
+export function colorearPlan(plan: PlanCuotas) {
+  const r = resumenPlan(plan);
+  if (r.completado) {
+    return {fondo: '#DCFCE7', texto: '#16A34A', borde: '#86EFAC', chip: 'COMPLETADO'};
+  }
+  if (r.proximaPendiente && r.proximaPendiente.fecha < hoyISO()) {
+    return {fondo: '#FEE2E2', texto: '#DC2626', borde: '#FCA5A5', chip: 'EN MORA'};
+  }
+  return {fondo: '#F3E8FF', texto: '#8B5CF6', borde: '#C4B5FD', chip: 'ACTIVO'};
 }

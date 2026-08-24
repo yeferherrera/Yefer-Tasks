@@ -52,3 +52,39 @@ export interface ItemConEstado extends Item {
   estado: EstadoItem;
   diasMora: number;
 }
+
+export interface CuotaIndividual {
+  numero: number;
+  valor: number;
+  capital: number;
+  interes: number;
+  fecha: string;
+  pagado: boolean;
+  pagadoEn?: number;
+}
+
+export interface PlanCuotas {
+  id: string;
+  nombre: string;
+  totalDeuda: number;
+  numCuotas: number;
+  tasaInteresMensual: number;
+  valorCuota: number;
+  totalConInteres: number;
+  fechaInicio: string;
+  cuotas: CuotaIndividual[];
+  completado: boolean;
+  notas?: string;
+  creadoEn: number;
+}
+
+export type PlanCuotasSinId = Omit<PlanCuotas, 'id'>;
+
+export const VERSION_APP = '1.2';
+export const CHANGELOG = [
+  '📦 Sistema de Cuotas: crea planes de pago con número de cuotas',
+  '💰 Interés mensual: calcula automáticamente con interés compuesto',
+  '📊 Barra de progreso: visualiza cuánto has pagado de cada deuda',
+  '🔔 Notificación de cuotas: aviso cuando vence la cuota del mes',
+  '🎨 Diseño mejorado en todas las pantallas',
+];

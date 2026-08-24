@@ -45,6 +45,10 @@ export const colores = {
   peligroFondo: '#FEE2E2',
   peligroBorde: '#FCA5A5',
 
+  cuotaTexto: '#8B5CF6',
+  cuotaFondo: '#F3E8FF',
+  cuotaBorde: '#C4B5FD',
+
   skeleton: '#E8EAF0',
 
   sombra: '#000000',

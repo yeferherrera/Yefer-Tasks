@@ -1,5 +1,6 @@
 import React from 'react';
-import {StatusBar, TouchableOpacity, Text, View} from 'react-native';
+import {StatusBar, TouchableOpacity, Text, View, Alert} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -13,7 +14,11 @@ import {CalendarioScreen} from './src/screens/CalendarioScreen';
 import {AgregarScreen} from './src/screens/AgregarScreen';
 import {AjustesScreen} from './src/screens/AjustesScreen';
 import {BalanceScreen} from './src/screens/BalanceScreen';
+import {CuotasScreen} from './src/screens/CuotasScreen';
+import {CrearCuotasScreen} from './src/screens/CrearCuotasScreen';
+import {DetalleCuotaScreen} from './src/screens/DetalleCuotaScreen';
 import {colores, sombras} from './src/theme';
+import {VERSION_APP, CHANGELOG} from './src/types';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -26,6 +31,7 @@ const temaNavegacion = {
 function TabIcon({name, focused}: {name: string; focused: boolean}) {
   const icons: Record<string, string> = {
     Inicio: focused ? '🏠' : '🏡',
+    Cuotas: focused ? '💳' : '📊',
     Calendario: focused ? '📅' : '📆',
     Balance: focused ? '💰' : '💵',
     Ajustes: focused ? '⚙️' : '🔧',
@@ -54,12 +60,13 @@ function Pestanas() {
           paddingTop: 8,
           ...sombras.lg,
         },
-        tabBarLabelStyle: {fontSize: 11, fontWeight: '600', marginTop: 2},
+        tabBarLabelStyle: {fontSize: 10, fontWeight: '600', marginTop: 2},
         tabBarIcon: ({focused}) => (
           <TabIcon name={route.name} focused={focused} />
         ),
       })}>
       <Tabs.Screen name="Inicio" component={InicioScreen} />
+      <Tabs.Screen name="Cuotas" component={CuotasScreen} />
       <Tabs.Screen name="Calendario" component={CalendarioScreen} />
       <Tabs.Screen name="Balance" component={BalanceScreen} />
       <Tabs.Screen name="Ajustes" component={AjustesScreen} />
@@ -94,6 +101,20 @@ function BotonAgregar({navigation}: any) {
 
 function NavegacionInterna() {
   const {usuario, cargando} = useAuth();
+
+  React.useEffect(() => {
+    if (!usuario || cargando) return;
+    const chave = `changelog_v${VERSION_APP}`;
+    AsyncStorage.getItem(chave).then(visto => {
+      if (!visto) {
+        Alert.alert(
+          `YeferTasks v${VERSION_APP} — Novedades`,
+          CHANGELOG.join('\n\n'),
+          [{text: '¡Genial!', onPress: () => AsyncStorage.setItem(chave, '1')}],
+        );
+      }
+    });
+  }, [usuario, cargando]);
 
   if (cargando) {
     return (
@@ -146,6 +167,15 @@ function NavegacionInterna() {
           name="Agregar"
           options={{presentation: 'modal', animation: 'slide_from_bottom'}}
           component={AgregarScreen}
+        />
+        <Stack.Screen
+          name="CrearCuota"
+          options={{presentation: 'modal', animation: 'slide_from_bottom'}}
+          component={CrearCuotasScreen}
+        />
+        <Stack.Screen
+          name="DetalleCuota"
+          component={DetalleCuotaScreen}
         />
       </Stack.Navigator>
     </>
