@@ -37,10 +37,14 @@ export function InicioScreen({navigation}: any) {
     return escucharItems(
       usuario.uid,
       lista => {
+        console.log('[YeferTasks] Items recibidos:', lista.length);
         setItems(lista);
         setCargando(false);
       },
-      () => setCargando(false),
+      e => {
+        console.error('[YeferTasks] Error listener items:', e.message);
+        setCargando(false);
+      },
     );
   }, [usuario]);
 

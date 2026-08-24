@@ -34,15 +34,20 @@ export function escucharItems(
   alError: (e: Error) => void,
 ): () => void {
   return onSnapshot(
-    query(refItems(uid), orderBy('fecha', 'asc')),
+    refItems(uid),
     snapshot => {
       const items = snapshot.docs.map(d => ({
         id: d.id,
         ...(d.data() as ItemSinId),
       }));
+      items.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+      console.log('[YeferTasks] Items cargados:', items.length);
       alCambiar(items);
     },
-    alError,
+    error => {
+      console.error('[YeferTasks] Error escuchando items:', error.message);
+      alError(error);
+    },
   );
 }
 

@@ -59,47 +59,51 @@ export function AgregarScreen({navigation, route}: any) {
       pedirPermisoNotificaciones().catch(() => {});
 
       let id: string;
-      const camposBase: Record<string, unknown> = {
-        tipo,
-        titulo: titulo.trim(),
-        fecha,
-        horaRecordatorio: hora,
-        recurrente,
-        creadoEn: Date.now(),
-      };
-      if (notas.trim()) {
-        camposBase.notas = notas.trim();
-      }
-      if (tipo === 'pago' && montoNum != null) {
-        camposBase.monto = montoNum;
-      }
 
       if (itemEditando) {
         id = itemEditando.id;
-        await actualizarItem(usuario.uid, id, camposBase);
+        const updates: any = {};
+        updates.tipo = tipo;
+        updates.titulo = titulo.trim();
+        updates.fecha = fecha;
+        updates.horaRecordatorio = hora;
+        updates.recurrente = recurrente;
+        updates.notas = notas.trim() || null;
+        updates.monto = tipo === 'pago' ? (montoNum ?? 0) : null;
+        await actualizarItem(usuario.uid, id, updates);
         cancelarRecordatorios(itemEditando).catch(() => {});
       } else {
-        camposBase.completado = false;
-        id = await crearItem(usuario.uid, camposBase as ItemSinId);
+        const nuevoItem: any = {};
+        nuevoItem.tipo = tipo;
+        nuevoItem.titulo = titulo.trim();
+        nuevoItem.fecha = fecha;
+        nuevoItem.horaRecordatorio = hora;
+        nuevoItem.completado = false;
+        nuevoItem.recurrente = recurrente;
+        nuevoItem.notas = notas.trim() || null;
+        nuevoItem.monto = tipo === 'pago' ? (montoNum ?? 0) : null;
+        nuevoItem.creadoEn = Date.now();
+        console.log('[YeferTasks] Guardando item:', JSON.stringify(nuevoItem));
+        id = await crearItem(usuario.uid, nuevoItem);
+        console.log('[YeferTasks] Item guardado con id:', id);
       }
 
-      const itemCompleto: Item = {
+      programarRecordatorios({
         id,
         tipo,
         titulo: titulo.trim(),
         fecha,
         horaRecordatorio: hora,
-        recurrente,
-        creadoEn: Date.now(),
         completado: false,
-        ...(notas.trim() ? {notas: notas.trim()} : {}),
-        ...(tipo === 'pago' && montoNum != null ? {monto: montoNum} : {}),
-      };
-      programarRecordatorios(itemCompleto).catch(() => {});
+        recurrente,
+        notas: notas.trim() || undefined,
+        creadoEn: Date.now(),
+        monto: tipo === 'pago' ? (montoNum ?? 0) : undefined,
+      } as Item).catch(() => {});
 
       navigation.goBack();
     } catch (e) {
-      console.error('Error al guardar item:', e);
+      console.error('[YeferTasks] Error al guardar item:', e);
       Alert.alert('Error', 'No se pudo guardar. Revisa tu conexión e intenta otra vez.');
     } finally {
       setGuardando(false);
