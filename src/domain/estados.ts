@@ -85,6 +85,7 @@ export function calcularValorCuota(
   totalDeuda: number,
   numCuotas: number,
   tasaInteresMensual: number,
+  fechaInicio?: string,
 ): {valorCuota: number; totalConInteres: number; cuotas: CuotaIndividual[]} {
   const r = tasaInteresMensual / 100;
   let valorCuota: number;
@@ -99,6 +100,10 @@ export function calcularValorCuota(
     totalConInteres = valorCuota * numCuotas;
   }
 
+  const diaInicio = fechaInicio
+    ? parseInt(fechaInicio.split('-')[2], 10)
+    : new Date().getDate();
+
   const cuotas: CuotaIndividual[] = [];
   let saldo = totalDeuda;
 
@@ -106,7 +111,9 @@ export function calcularValorCuota(
     const interesMes = Math.round(saldo * r);
     const capitalMes = valorCuota - interesMes;
     const [y, m] = getFechaMesOffset(new Date(), i - 1);
-    const fecha = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    const ultimoDiaMes = new Date(y, m + 1, 0).getDate();
+    const diaFinal = Math.min(diaInicio, ultimoDiaMes);
+    const fecha = `${y}-${String(m + 1).padStart(2, '0')}-${String(diaFinal).padStart(2, '0')}`;
 
     cuotas.push({
       numero: i,

@@ -48,8 +48,8 @@ export function CrearCuotasScreen({navigation}: any) {
     if (total <= 0 || numCuotas <= 0) {
       return null;
     }
-    return calcularValorCuota(total, numCuotas, interes);
-  }, [total, numCuotas, interes]);
+    return calcularValorCuota(total, numCuotas, interes, fechaInicio);
+  }, [total, numCuotas, interes, fechaInicio]);
 
   function formatearInput(valor: string): string {
     const limpio = valor.replace(/\D/g, '');
@@ -73,7 +73,7 @@ export function CrearCuotasScreen({navigation}: any) {
 
     setGuardando(true);
     try {
-      const r = calcularValorCuota(total, numCuotas, interes);
+      const r = calcularValorCuota(total, numCuotas, interes, fechaInicio);
       const planData: any = {
         nombre: nombre.trim(),
         totalDeuda: total,
