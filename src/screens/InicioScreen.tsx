@@ -57,9 +57,14 @@ export function InicioScreen({navigation}: any) {
 
   const itemsConEstado = useMemo(() => clasificarItems(items, hoy), [items, hoy]);
 
+  const itemsDelMes = useMemo(
+    () => itemsConEstado.filter(i => i.fecha.slice(0, 7) === mesActual),
+    [itemsConEstado, mesActual],
+  );
+
   const porPagar = useMemo(
-    () => itemsConEstado.filter(i => !i.completado && i.fecha >= hoy),
-    [itemsConEstado],
+    () => itemsDelMes.filter(i => !i.completado && i.fecha >= hoy),
+    [itemsDelMes],
   );
 
   const enMora = useMemo(
@@ -68,8 +73,8 @@ export function InicioScreen({navigation}: any) {
   );
 
   const pagados = useMemo(
-    () => itemsConEstado.filter(i => i.completado),
-    [itemsConEstado],
+    () => itemsDelMes.filter(i => i.completado),
+    [itemsDelMes],
   );
 
   const visibles = useMemo(() => {
@@ -81,9 +86,9 @@ export function InicioScreen({navigation}: any) {
       case 'pagados':
         return pagados;
       default:
-        return itemsConEstado.filter(i => !i.completado);
+        return itemsDelMes.filter(i => !i.completado);
     }
-  }, [filtro, itemsConEstado, porPagar, enMora, pagados]);
+  }, [filtro, itemsDelMes, porPagar, enMora, pagados]);
 
   const resumenMes = useMemo(() => {
     const delMes = itemsConEstado.filter(i => i.fecha.startsWith(mesActual));
@@ -189,7 +194,7 @@ export function InicioScreen({navigation}: any) {
   }
 
   const modulos: [ModuloFiltro, string, number][] = [
-    ['todos', 'Todos', itemsConEstado.filter(i => !i.completado).length],
+    ['todos', 'Todos', itemsDelMes.filter(i => !i.completado).length],
     ['por_pagar', 'Por pagar', porPagar.length],
     ['en_mora', 'En mora', enMora.length],
     ['pagados', 'Pagados', pagados.length],
