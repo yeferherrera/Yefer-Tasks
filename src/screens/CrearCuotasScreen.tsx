@@ -74,7 +74,7 @@ export function CrearCuotasScreen({navigation}: any) {
     setGuardando(true);
     try {
       const r = calcularValorCuota(total, numCuotas, interes);
-      await crearPlanCuotas(usuario.uid, {
+      const planData: any = {
         nombre: nombre.trim(),
         totalDeuda: total,
         numCuotas,
@@ -84,12 +84,16 @@ export function CrearCuotasScreen({navigation}: any) {
         fechaInicio,
         cuotas: r.cuotas,
         completado: false,
-        notas: notas.trim() || undefined,
         creadoEn: Date.now(),
-      });
+      };
+      if (notas.trim()) {
+        planData.notas = notas.trim();
+      }
+      await crearPlanCuotas(usuario.uid, planData);
       navigation.goBack();
-    } catch {
-      Alert.alert('Error', 'No se pudo guardar el plan. Intenta de nuevo.');
+    } catch (e: any) {
+      const msg = e?.message || e?.code || JSON.stringify(e);
+      Alert.alert('Error', 'No se pudo guardar el plan.\n\n' + msg);
     } finally {
       setGuardando(false);
     }
