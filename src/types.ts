@@ -80,12 +80,10 @@ export interface PlanCuotas {
 
 export type PlanCuotasSinId = Omit<PlanCuotas, 'id'>;
 
-export const VERSION_APP = '2.0';
+export const VERSION_APP = '3.1';
 export const CHANGELOG = [
-  '🔧 Tareas: ahora se guardan correctamente sin errores',
-  '✅ Completar pagos: funciona sin problemas',
-  '🔔 Notificaciones: se cancelan al completar, se programan para el próximo mes',
-  '🛡️ Robustez: protección contra datos corruptos en Firestore',
-  '🎨 Mejoras UX: botones con iconos, mejor feedback visual',
-  '🚀 Versión estable de producción',
+  '🔔 Notificaciones: ahora usan AlarmManager para funcionar con la app cerrada',
+  '⏰ Permisos: se verifica permiso de alarma y optimización de batería',
+  '📊 Diagnóstico: test de notificaciones muestra estado completo',
+  '🛡️ Estabilidad: notificaciones programadas al crear pagos y tareas',
 ];
