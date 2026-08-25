@@ -206,9 +206,9 @@ export function AgregarScreen({navigation, route}: any) {
 
         <Text style={styles.etiqueta}>⏰ Recordar a las:</Text>
         <TouchableOpacity style={styles.selectorHora} onPress={() => {
-          const opciones = ['06:00', '07:00', '08:00', '09:00', '10:00', '12:00', '14:00', '18:00', '20:00'];
+          const horas = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0') + ':00');
           Alert.alert('¿A qué hora?', 'Selecciona la hora del recordatorio', [
-            ...opciones.map(h => ({text: h, onPress: () => setHora(h)})),
+            ...horas.map(h => ({text: h, onPress: () => setHora(h)})),
             {text: 'Cancelar', style: 'cancel' as const},
           ]);
         }}>

@@ -13,7 +13,7 @@ import notifee, {
 } from '@notifee/react-native';
 import type { Item } from '../types';
 
-const CANAL_ID = 'recordatorios-yefertask';
+const CANAL_ID = 'recordatorios-yefertasks';
 
 /** Crea el canal de notificación (obligatorio en Android 8+) */
 export async function inicializarNotificaciones(): Promise<void> {
@@ -94,18 +94,28 @@ export async function cancelarRecordatorios(item: Item): Promise<void> {
 /** Envía una notificación de prueba inmediata para confirmar que funciona */
 export async function enviarNotificacionPrueba(): Promise<boolean> {
   try {
+    await notifee.createChannel({
+      id: CANAL_ID,
+      name: 'Recordatorios',
+      importance: AndroidImportance.HIGH,
+      sound: 'default',
+      vibration: true,
+    });
+
     await notifee.displayNotification({
-      title: '✅ YeferTasks — Notificaciones activas',
-      body: 'Perfecto, recibirás recordatorios de tus pagos y tareas. ¡No los olvides!',
+      title: '✅ YeferTasks',
+      body: 'Notificaciones activas. Recibirás recordatorios de tus pagos y tareas.',
       android: {
         channelId: CANAL_ID,
-        smallIcon: 'ic_launcher',
         pressAction: {id: 'default'},
-        importance: AndroidImportance.HIGH,
+        sound: 'default',
+        smallIcon: 'ic_launcher',
       },
     });
     return true;
-  } catch {
+  } catch (e) {
+    console.log('[DEBUG] Error enviando notificación prueba:', e);
     return false;
   }
 }
+
