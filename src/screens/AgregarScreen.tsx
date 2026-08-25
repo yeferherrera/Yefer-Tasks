@@ -8,6 +8,7 @@ import {
   ScrollView,
   Switch,
   Alert,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Calendar} from 'react-native-calendars';
@@ -36,6 +37,7 @@ export function AgregarScreen({navigation, route}: any) {
   const [recurrente, setRecurrente] = useState(itemEditando?.recurrente ?? false);
   const [notas, setNotas] = useState(itemEditando?.notas ?? '');
   const [verCalendario, setVerCalendario] = useState(false);
+  const [verHoras, setVerHoras] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   async function guardar() {
@@ -205,13 +207,7 @@ export function AgregarScreen({navigation, route}: any) {
         )}
 
         <Text style={styles.etiqueta}>⏰ Recordar a las:</Text>
-        <TouchableOpacity style={styles.selectorHora} onPress={() => {
-          const horas = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0') + ':00');
-          Alert.alert('¿A qué hora?', 'Selecciona la hora del recordatorio', [
-            ...horas.map(h => ({text: h, onPress: () => setHora(h)})),
-            {text: 'Cancelar', style: 'cancel' as const},
-          ]);
-        }}>
+        <TouchableOpacity style={styles.selectorHora} onPress={() => setVerHoras(true)}>
           <Text style={styles.selectorHoraTexto}>🕐 {hora}</Text>
           <Text style={styles.selectorHoraFlecha}>Cambiar ›</Text>
         </TouchableOpacity>
@@ -255,6 +251,36 @@ export function AgregarScreen({navigation, route}: any) {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      <Modal visible={verHoras} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>⏰ Selecciona la hora</Text>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={true}>
+              {Array.from({length: 48}, (_, i) => {
+                const h = Math.floor(i / 2);
+                const m = i % 2 === 0 ? '00' : '30';
+                const texto = String(h).padStart(2, '0') + ':' + m;
+                const esActual = texto === hora;
+                return (
+                  <TouchableOpacity
+                    key={texto}
+                    style={[styles.modalOpcion, esActual && styles.modalOpcionActual]}
+                    onPress={() => { setHora(texto); setVerHoras(false); }}
+                  >
+                    <Text style={[styles.modalOpcionTexto, esActual && styles.modalOpcionActualTexto]}>
+                      {texto}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalCerrar} onPress={() => setVerHoras(false)}>
+              <Text style={styles.modalCerrarTexto}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -355,4 +381,57 @@ const styles = StyleSheet.create({
   botonTexto: {color: '#FFFFFF', fontSize: 17, fontWeight: '700'},
   botonBorrar: {alignItems: 'center', paddingVertical: espaciado.base, marginTop: espaciado.xs},
   botonBorrarTexto: {color: colores.peligroTexto, fontWeight: '700', fontSize: 16},
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colores.fondo,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colores.texto,
+    textAlign: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colores.divisor,
+  },
+  modalScroll: {maxHeight: 400},
+  modalOpcion: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colores.divisor,
+  },
+  modalOpcionActual: {
+    backgroundColor: colores.primarioSuave,
+  },
+  modalOpcionTexto: {
+    fontSize: 17,
+    color: colores.texto,
+    textAlign: 'center',
+  },
+  modalOpcionActualTexto: {
+    color: colores.primario,
+    fontWeight: '700',
+  },
+  modalCerrar: {
+    paddingVertical: 14,
+    marginTop: 8,
+    marginHorizontal: 20,
+    backgroundColor: colores.divisor,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCerrarTexto: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colores.textoSecundario,
+  },
 });
