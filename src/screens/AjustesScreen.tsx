@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Switch,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {getAuth, signOut} from '@react-native-firebase/auth';
@@ -29,6 +30,7 @@ export function AjustesScreen() {
   const [notifTareas, setNotifTareas] = useState(true);
   const [notifIngresos, setNotifIngresos] = useState(true);
   const [notifMora, setNotifMora] = useState(true);
+  const [verHoras, setVerHoras] = useState(false);
 
   async function alternarBurbuja() {
     if (burbujaActiva) {
@@ -75,11 +77,7 @@ export function AjustesScreen() {
   }
 
   function seleccionarHora() {
-    const horas = ['06:00', '07:00', '08:00', '09:00', '10:00', '12:00'];
-    Alert.alert('Hora del recordatorio', 'Selecciona la hora del resumen matutino', [
-      ...horas.map(h => ({text: h, onPress: () => setHoraRecordatorio(h)})),
-      {text: 'Cancelar', style: 'cancel' as const},
-    ]);
+    setVerHoras(true);
   }
 
   const iniciales = 'YH';
@@ -234,6 +232,36 @@ export function AjustesScreen() {
           <Text style={styles.ayuda}>YeferTasks · v2.3 · Datos en Firebase</Text>
         </View>
       </ScrollView>
+
+      <Modal visible={verHoras} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>⏰ Selecciona la hora</Text>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={true}>
+              {Array.from({length: 48}, (_, i) => {
+                const h = Math.floor(i / 2);
+                const m = i % 2 === 0 ? '00' : '30';
+                const texto = String(h).padStart(2, '0') + ':' + m;
+                const esActual = texto === horaRecordatorio;
+                return (
+                  <TouchableOpacity
+                    key={texto}
+                    style={[styles.modalOpcion, esActual && styles.modalOpcionActual]}
+                    onPress={() => { setHoraRecordatorio(texto); setVerHoras(false); }}
+                  >
+                    <Text style={[styles.modalOpcionTexto, esActual && styles.modalOpcionActualTexto]}>
+                      {texto}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalCerrar} onPress={() => setVerHoras(false)}>
+              <Text style={styles.modalCerrarTexto}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -378,4 +406,57 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   puntoActivo: {},
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colores.fondo,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colores.texto,
+    textAlign: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colores.divisor,
+  },
+  modalScroll: {maxHeight: 400},
+  modalOpcion: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colores.divisor,
+  },
+  modalOpcionActual: {
+    backgroundColor: colores.primarioSuave,
+  },
+  modalOpcionTexto: {
+    fontSize: 17,
+    color: colores.texto,
+    textAlign: 'center',
+  },
+  modalOpcionActualTexto: {
+    color: colores.primario,
+    fontWeight: '700',
+  },
+  modalCerrar: {
+    paddingVertical: 14,
+    marginTop: 8,
+    marginHorizontal: 20,
+    backgroundColor: colores.divisor,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCerrarTexto: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colores.textoSecundario,
+  },
 });
