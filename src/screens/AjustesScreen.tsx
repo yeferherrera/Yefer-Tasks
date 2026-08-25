@@ -63,22 +63,37 @@ export function AjustesScreen() {
     const permiso = await pedirPermisoNotificaciones();
     if (!permiso) {
       Alert.alert(
-        '⚠️ Sin permiso',
+        '⚠️ Sin permiso de notificaciones',
         'Ve a Ajustes del celular → Apps → YeferTasks → Notificaciones y actívalas.',
       );
       return;
     }
 
     try {
-      await notifee.cancelTriggerNotification('test-trigger-notificacion');
+      await notifee.cancelTriggerNotification('test-background-trigger');
     } catch {}
 
-    const enviado = await enviarNotificacionPrueba();
+    const resultado = await enviarNotificacionPrueba();
+
+    let mensaje = '';
+    if (!resultado.permisoAlarma) {
+      mensaje = 'Se abrieron los ajustes de alarma. Activa el permiso "Alarmas y recordatorios" y vuelve a intentar.';
+    } else if (resultado.inmediata && resultado.programada) {
+      mensaje = 'Te llegaron 2 notificaciones:\n\n1. AHORA (inmediata)\n2. En 30 SEGUNDOS (sin abrir la app)\n\n';
+      if (resultado.bateriaOptimizada) {
+        mensaje += '⚠️ IMPORTANTE: Para que los recordatorios funcionen:\nAjustes → Apps → YeferTasks → Batería → "Sin restricciones"';
+      } else {
+        mensaje += 'La batería optimizada está desactivada. Todo debería funcionar.';
+      }
+    } else {
+      mensaje = 'No se pudo enviar. Revisa los ajustes del celular.';
+    }
+
     Alert.alert(
-      enviado ? '✅ Notificaciones programadas' : '⚠️ No se pudo enviar',
-      enviado
-        ? 'Te llegaron 2 notificaciones:\n\n1. Una AHORA (inmediata)\n2. Otra en 10 SEGUNDOS (trigger)\n\nSi la segunda llega sin abrir la app, todo funciona.'
-        : 'No se pudo enviar. Revisa que las notificaciones estén activas en los ajustes del celular.',
+      resultado.permisoAlarma
+        ? (resultado.programada ? '✅ Notificaciones programadas' : '⚠️ Parcial')
+        : '⚠️ Permiso de alarma requerido',
+      mensaje,
     );
   }
 

@@ -1,20 +1,29 @@
 /**
- * SERVICIO DE NOTIFICACIONES (recordatorios)
+ * SERVICIO DE NOTIFICACIONES v3 - AlarmManager
  *
- * Usa notifee para programar alarmas LOCALES del celular:
- *  - 1 día antes a la hora elegida
- *  - El mismo día a la hora elegida
- * Funcionan SIN internet porque las agenda el propio Android.
+ * Usa notifee con AlarmManager (no WorkManager) para que las alarmas
+ * funcionen aunque la app esté cerrada, en Doze, o con batería baja.
+ *
+ * Configuración:
+ *  - SET_EXACT_AND_ALLOW_WHILE_IDLE: dispara en Doze mode
+ *  - Canal HIGH IMPORTANCE con sonido por defecto
+ *  - Verificación de permisos y batería optimizada
  */
-import {Platform, PermissionsAndroid} from 'react-native';
+import {Platform, PermissionsAndroid, Linking} from 'react-native';
 import notifee, {
   AndroidImportance,
+  AndroidNotificationSetting,
   TriggerType,
   TimestampTrigger,
+  AlarmType,
 } from '@notifee/react-native';
 import type {Item} from '../types';
 
 const CANAL_ID = 'recordatorios-yefertasks';
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
 
 /** Crea el canal de notificación (obligatorio en Android 8+) */
 export async function inicializarNotificaciones(): Promise<void> {
@@ -27,10 +36,13 @@ export async function inicializarNotificaciones(): Promise<void> {
   });
 }
 
-/** Pide el permiso de notificaciones (obligatorio en Android 13+) */
+// ============================================================
+// PERMISOS
+// ============================================================
+
+/** Pide permiso de notificaciones (Android 13+) */
 export async function pedirPermisoNotificaciones(): Promise<boolean> {
   try {
-    // Android 13+ necesita permiso runtime POST_NOTIFICATIONS
     if (Platform.OS === 'android' && Platform.Version >= 33) {
       const resultado = await PermissionsAndroid.request(
         'android.permission.POST_NOTIFICATIONS',
@@ -44,11 +56,9 @@ export async function pedirPermisoNotificaciones(): Promise<boolean> {
       );
       return resultado === PermissionsAndroid.RESULTS.GRANTED;
     }
-    // Android anterior: notifee requestPermission funciona bien
     const ajustes = await notifee.requestPermission();
     return ajustes.authorizationStatus >= 0;
-  } catch (e) {
-    // Si falla el permiso nativo, intentar con notifee como fallback
+  } catch {
     try {
       const ajustes = await notifee.requestPermission();
       return ajustes.authorizationStatus >= 0;
@@ -58,9 +68,46 @@ export async function pedirPermisoNotificaciones(): Promise<boolean> {
   }
 }
 
+/** Verifica si el permiso de alarmas exactas está habilitado */
+export async function verificarPermisoAlarma(): Promise<boolean> {
+  try {
+    const settings = await notifee.getNotificationSettings();
+    return settings.android.alarm === AndroidNotificationSetting.ENABLED;
+  } catch {
+    return false;
+  }
+}
+
+/** Abre ajustes de alarma para que el usuario la habilite */
+export async function abrirAjustesAlarma(): Promise<void> {
+  try {
+    await notifee.openAlarmPermissionSettings();
+  } catch {}
+}
+
+/** Verifica si la batería optimizada está activa */
+export async function verificarBateriaOptimizada(): Promise<boolean> {
+  try {
+    return await notifee.isBatteryOptimizationEnabled();
+  } catch {
+    return false;
+  }
+}
+
+/** Abre ajustes de batería para desactivar optimización */
+export async function abrirAjustesBateria(): Promise<void> {
+  try {
+    await Linking.openSettings();
+  } catch {}
+}
+
+// ============================================================
+// PROGRAMAR RECORDATORIOS (con AlarmManager)
+// ============================================================
+
 /**
- * Programa los 2 recordatorios de un item.
- * Devuelve los IDs de las alarmas creadas (se guardan para poder cancelarlas).
+ * Programa los 2 recordatorios de un item usando AlarmManager.
+ * AlarmManager funciona aunque la app esté cerrada.
  */
 export async function programarRecordatorios(item: Item): Promise<string[]> {
   if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) return [];
@@ -78,15 +125,19 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
   for (const objetivo of fechasObjetivo) {
     let fecha = new Date(y, m - 1, objetivo.dia, horaStr, minutoStr, 0, 0);
 
-    // Si el "1 día antes" ya pasó (ej: agregaste algo para hoy), saltarlo
     if (fecha.getTime() <= Date.now()) continue;
 
+    const esPago = item.tipo === 'pago';
     const trigger: TimestampTrigger = {
       type: TriggerType.TIMESTAMP,
       timestamp: fecha.getTime(),
+      // CLAVE: usar AlarmManager con SET_EXACT_AND_ALLOW_WHILE_IDLE
+      // Esto funciona en Doze mode y con batería baja
+      alarmManager: {
+        type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE,
+      },
     };
 
-    const esPago = item.tipo === 'pago';
     const id = await notifee.createTriggerNotification(
       {
         id: `${item.id}-${objetivo.dia}`,
@@ -110,7 +161,7 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
   return ids;
 }
 
-/** Cancela las alarmas de un item (al editar o eliminar) */
+/** Cancela las alarmas de un item */
 export async function cancelarRecordatorios(item: Item): Promise<void> {
   if (!item.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(item.fecha)) return;
   const [y, m, d] = item.fecha.split('-').map(Number);
@@ -118,11 +169,30 @@ export async function cancelarRecordatorios(item: Item): Promise<void> {
   await notifee.cancelTriggerNotification(`${item.id}-${d - 1}`);
 }
 
-/** Envía una notificación de prueba inmediata + una programada para 10 segundos.
- *  Así el usuario ve que funciona sin abrir la app. */
-export async function enviarNotificacionPrueba(): Promise<boolean> {
+// ============================================================
+// NOTIFICACIÓN DE PRUEBA
+// ============================================================
+
+/**
+ * Envía notificación de prueba:
+ *  1. Inmediata (para probar que el canal funciona)
+ *  2. Programada para 30 segundos con AlarmManager (para probar background)
+ */
+export async function enviarNotificacionPrueba(): Promise<{
+  inmediata: boolean;
+  programada: boolean;
+  permisoAlarma: boolean;
+  bateriaOptimizada: boolean;
+}> {
+  const resultado = {
+    inmediata: false,
+    programada: false,
+    permisoAlarma: false,
+    bateriaOptimizada: false,
+  };
+
   try {
-    // 1. Asegurar que el canal existe
+    // 1. Crear canal
     await notifee.createChannel({
       id: CANAL_ID,
       name: 'Recordatorios',
@@ -131,10 +201,20 @@ export async function enviarNotificacionPrueba(): Promise<boolean> {
       vibration: true,
     });
 
-    // 2. Notificación INMEDIATA (se ve al instante si la app está abierta)
+    // 2. Verificar permiso de alarma
+    resultado.permisoAlarma = await verificarPermisoAlarma();
+    if (!resultado.permisoAlarma) {
+      await abrirAjustesAlarma();
+      return resultado;
+    }
+
+    // 3. Verificar batería optimizada
+    resultado.bateriaOptimizada = await verificarBateriaOptimizada();
+
+    // 4. Notificación INMEDIATA
     await notifee.displayNotification({
-      title: '✅ YeferTasks - Probando',
-      body: 'Esta notificación es inmediata. Cierra la app y espera 10 segundos...',
+      title: '✅ YeferTasks - Notificación inmediata',
+      body: 'Si ves esto, el canal funciona. Ahora cierra la app...',
       android: {
         channelId: CANAL_ID,
         pressAction: {id: 'default'},
@@ -143,13 +223,14 @@ export async function enviarNotificacionPrueba(): Promise<boolean> {
         importance: AndroidImportance.HIGH,
       },
     });
+    resultado.inmediata = true;
 
-    // 3. Notificación PROGRAMADA para 10 segundos (prueba de trigger)
+    // 5. Notificación PROGRAMADA para 30 segundos con AlarmManager
     await notifee.createTriggerNotification(
       {
-        id: 'test-trigger-notificacion',
-        title: '✅ YeferTasks - Trigger funciona!',
-        body: 'Esta notificación se programó 10 segundos. Llega aunque la app esté cerrada.',
+        id: 'test-background-trigger',
+        title: '✅ YeferTasks - ¡Llegó sin abrir la app!',
+        body: 'Si ves esta notificación, los recordatorios funcionan al 100%.',
         android: {
           channelId: CANAL_ID,
           pressAction: {id: 'default'},
@@ -160,12 +241,17 @@ export async function enviarNotificacionPrueba(): Promise<boolean> {
       },
       {
         type: TriggerType.TIMESTAMP,
-        timestamp: Date.now() + 10 * 1000,
+        timestamp: Date.now() + 30 * 1000,
+        // AlarmManager para que funcione con app cerrada
+        alarmManager: {
+          type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE,
+        },
       },
     );
-    return true;
+    resultado.programada = true;
   } catch (e) {
     console.log('[NOTIFICACIONES] Error:', e);
-    return false;
   }
+
+  return resultado;
 }

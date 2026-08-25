@@ -10,6 +10,7 @@ import notifee, {
   TriggerType,
   TimestampTrigger,
   RepeatFrequency,
+  AlarmType,
 } from '@notifee/react-native';
 import {Platform, PermissionsAndroid} from 'react-native';
 import type {Item} from '../types';
@@ -192,6 +193,9 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
     const trigger: TimestampTrigger = {
       type: TriggerType.TIMESTAMP,
       timestamp: fecha.getTime(),
+      alarmManager: {
+        type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE,
+      },
     };
 
     const id = await notifee.createTriggerNotification(
