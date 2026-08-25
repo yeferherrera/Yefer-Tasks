@@ -13,6 +13,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {getAuth, signOut} from '@react-native-firebase/auth';
 import {useAuth} from '../context/AuthContext';
 import {pedirPermisoNotificaciones, enviarNotificacionPrueba} from '../services/notificaciones';
+import notifee from '@notifee/react-native';
 import {
   tienePermisoOverlay,
   pedirPermisoOverlay,
@@ -59,21 +60,26 @@ export function AjustesScreen() {
   }
 
   async function probarNotificacion() {
-    const ok = await pedirPermisoNotificaciones();
-    if (ok) {
-      const enviado = await enviarNotificacionPrueba();
-      Alert.alert(
-        enviado ? '✅ Notificación enviada' : '⚠️ No se pudo enviar',
-        enviado
-          ? 'Revisa tu barra de notificaciones. Si la ves, todo funciona perfecto.'
-          : 'Hubo un problema. Revisa los permisos de notificación del celular.',
-      );
-    } else {
+    const permiso = await pedirPermisoNotificaciones();
+    if (!permiso) {
       Alert.alert(
         '⚠️ Sin permiso',
-        'Ve a Ajustes del celular > Apps > YeferTasks > Notificaciones y actívalas.',
+        'Ve a Ajustes del celular → Apps → YeferTasks → Notificaciones y actívalas.',
       );
+      return;
     }
+
+    try {
+      await notifee.cancelTriggerNotification('test-notificacion');
+    } catch {}
+
+    const enviado = await enviarNotificacionPrueba();
+    Alert.alert(
+      enviado ? '✅ Notificación programada' : '⚠️ No se pudo enviar',
+      enviado
+        ? 'Espera 5 segundos. Te llegará una notificación para confirmar que todo funciona.'
+        : 'No se pudo enviar. Revisa que las notificaciones estén activas en los ajustes del celular.',
+    );
   }
 
   function seleccionarHora() {

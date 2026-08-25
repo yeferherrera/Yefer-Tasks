@@ -6,12 +6,13 @@
  *  - El mismo día a la hora elegida
  * Funcionan SIN internet porque las agenda el propio Android.
  */
+import {Platform, PermissionsAndroid} from 'react-native';
 import notifee, {
   AndroidImportance,
   TriggerType,
   TimestampTrigger,
 } from '@notifee/react-native';
-import type { Item } from '../types';
+import type {Item} from '../types';
 
 const CANAL_ID = 'recordatorios-yefertasks';
 
@@ -22,15 +23,39 @@ export async function inicializarNotificaciones(): Promise<void> {
     name: 'Recordatorios de pagos y tareas',
     importance: AndroidImportance.HIGH,
     vibration: true,
+    sound: 'default',
   });
 }
 
 /** Pide el permiso de notificaciones (obligatorio en Android 13+) */
 export async function pedirPermisoNotificaciones(): Promise<boolean> {
-  const ajustes = await notifee.requestPermission();
-  // 1 = autorizado, -1 = no decidido aún (también lo tratamos como concedido
-  // porque Android lo preguntará al mostrar la primera notificación)
-  return ajustes.authorizationStatus >= 0;
+  try {
+    // Android 13+ necesita permiso runtime POST_NOTIFICATIONS
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      const resultado = await PermissionsAndroid.request(
+        'android.permission.POST_NOTIFICATIONS',
+        {
+          title: 'Permiso de notificaciones',
+          message:
+            'YeferTasks necesita enviar notificaciones para recordarte tus pagos y tareas.',
+          buttonPositive: 'Permitir',
+          buttonNegative: 'No',
+        },
+      );
+      return resultado === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    // Android anterior: notifee requestPermission funciona bien
+    const ajustes = await notifee.requestPermission();
+    return ajustes.authorizationStatus >= 0;
+  } catch (e) {
+    // Si falla el permiso nativo, intentar con notifee como fallback
+    try {
+      const ajustes = await notifee.requestPermission();
+      return ajustes.authorizationStatus >= 0;
+    } catch {
+      return false;
+    }
+  }
 }
 
 /**
@@ -46,8 +71,8 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
 
   const [y, m, d] = item.fecha.split('-').map(Number);
   const fechasObjetivo = [
-    { dia: d - 1, etiqueta: 'vence mañana' },
-    { dia: d, etiqueta: '¡VENCE HOY!' },
+    {dia: d - 1, etiqueta: 'vence mañana'},
+    {dia: d, etiqueta: '¡VENCE HOY!'},
   ];
 
   for (const objetivo of fechasObjetivo) {
@@ -73,7 +98,9 @@ export async function programarRecordatorios(item: Item): Promise<string[]> {
         android: {
           channelId: CANAL_ID,
           smallIcon: 'ic_launcher',
-          pressAction: { id: 'default' },
+          pressAction: {id: 'default'},
+          sound: 'default',
+          importance: AndroidImportance.HIGH,
         },
       },
       trigger,
@@ -91,9 +118,11 @@ export async function cancelarRecordatorios(item: Item): Promise<void> {
   await notifee.cancelTriggerNotification(`${item.id}-${d - 1}`);
 }
 
-/** Envía una notificación de prueba inmediata para confirmar que funciona */
+/** Envía una notificación de prueba programada para 5 segundos.
+ *  Así funciona sin importar si la app está abierta o cerrada. */
 export async function enviarNotificacionPrueba(): Promise<boolean> {
   try {
+    // 1. Asegurar que el canal existe
     await notifee.createChannel({
       id: CANAL_ID,
       name: 'Recordatorios',
@@ -102,20 +131,29 @@ export async function enviarNotificacionPrueba(): Promise<boolean> {
       vibration: true,
     });
 
-    await notifee.displayNotification({
-      title: '✅ YeferTasks',
-      body: 'Notificaciones activas. Recibirás recordatorios de tus pagos y tareas.',
-      android: {
-        channelId: CANAL_ID,
-        pressAction: {id: 'default'},
-        sound: 'default',
-        smallIcon: 'ic_launcher',
+    // 2. Programar notificación para 5 segundos (funciona sin app abierta)
+    const timestamp = Date.now() + 5 * 1000;
+    await notifee.createTriggerNotification(
+      {
+        id: 'test-notificacion',
+        title: '✅ YeferTasks - Funciona!',
+        body: 'Las notificaciones están activas. Recibirás recordatorios de tus pagos y tareas.',
+        android: {
+          channelId: CANAL_ID,
+          pressAction: {id: 'default'},
+          sound: 'default',
+          smallIcon: 'ic_launcher',
+          importance: AndroidImportance.HIGH,
+        },
       },
-    });
+      {
+        type: TriggerType.TIMESTAMP,
+        timestamp: timestamp,
+      },
+    );
     return true;
   } catch (e) {
-    console.log('[DEBUG] Error enviando notificación prueba:', e);
+    console.log('[NOTIFICACIONES] Error:', e);
     return false;
   }
 }
-

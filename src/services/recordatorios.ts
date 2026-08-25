@@ -11,6 +11,7 @@ import notifee, {
   TimestampTrigger,
   RepeatFrequency,
 } from '@notifee/react-native';
+import {Platform, PermissionsAndroid} from 'react-native';
 import type {Item} from '../types';
 import {hoyISO} from '../utils/fechas';
 import {formatearCOP} from '../utils/fechas';
@@ -115,8 +116,30 @@ export async function inicializarCanales(): Promise<void> {
 }
 
 export async function pedirPermiso(): Promise<boolean> {
-  const ajustes = await notifee.requestPermission();
-  return ajustes.authorizationStatus >= 0;
+  try {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      const resultado = await PermissionsAndroid.request(
+        'android.permission.POST_NOTIFICATIONS',
+        {
+          title: 'Permiso de notificaciones',
+          message:
+            'YeferTasks necesita enviar notificaciones para recordarte tus pagos y tareas.',
+          buttonPositive: 'Permitir',
+          buttonNegative: 'No',
+        },
+      );
+      return resultado === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    const ajustes = await notifee.requestPermission();
+    return ajustes.authorizationStatus >= 0;
+  } catch (e) {
+    try {
+      const ajustes = await notifee.requestPermission();
+      return ajustes.authorizationStatus >= 0;
+    } catch {
+      return false;
+    }
+  }
 }
 
 /**
