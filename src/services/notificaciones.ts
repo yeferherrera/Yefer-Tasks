@@ -90,3 +90,22 @@ export async function cancelarRecordatorios(item: Item): Promise<void> {
   await notifee.cancelTriggerNotification(`${item.id}-${d}`);
   await notifee.cancelTriggerNotification(`${item.id}-${d - 1}`);
 }
+
+/** Envía una notificación de prueba inmediata para confirmar que funciona */
+export async function enviarNotificacionPrueba(): Promise<boolean> {
+  try {
+    await notifee.displayNotification({
+      title: '✅ YeferTasks — Notificaciones activas',
+      body: 'Perfecto, recibirás recordatorios de tus pagos y tareas. ¡No los olvides!',
+      android: {
+        channelId: CANAL_ID,
+        smallIcon: 'ic_launcher',
+        pressAction: {id: 'default'},
+        importance: AndroidImportance.HIGH,
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}

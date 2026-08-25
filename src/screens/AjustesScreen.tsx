@@ -11,7 +11,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {getAuth, signOut} from '@react-native-firebase/auth';
 import {useAuth} from '../context/AuthContext';
-import {pedirPermisoNotificaciones} from '../services/notificaciones';
+import {pedirPermisoNotificaciones, enviarNotificacionPrueba} from '../services/notificaciones';
 import {
   tienePermisoOverlay,
   pedirPermisoOverlay,
@@ -58,12 +58,20 @@ export function AjustesScreen() {
 
   async function probarNotificacion() {
     const ok = await pedirPermisoNotificaciones();
-    Alert.alert(
-      ok ? '✅ Permisos listos' : '⚠️ Sin permiso',
-      ok
-        ? 'Los recordatorios funcionarán aunque no tengas internet.'
-        : 'Si bloqueas las notificaciones no recibirás los recordatorios.',
-    );
+    if (ok) {
+      const enviado = await enviarNotificacionPrueba();
+      Alert.alert(
+        enviado ? '✅ Notificación enviada' : '⚠️ No se pudo enviar',
+        enviado
+          ? 'Revisa tu barra de notificaciones. Si la ves, todo funciona perfecto.'
+          : 'Hubo un problema. Revisa los permisos de notificación del celular.',
+      );
+    } else {
+      Alert.alert(
+        '⚠️ Sin permiso',
+        'Ve a Ajustes del celular > Apps > YeferTasks > Notificaciones y actívalas.',
+      );
+    }
   }
 
   function seleccionarHora() {
@@ -223,7 +231,7 @@ export function AjustesScreen() {
 
         <View style={styles.tarjeta}>
           <Text style={styles.tituloSeccion}>Acerca de</Text>
-          <Text style={styles.ayuda}>YeferTasks · v1.1 · Datos en Firebase</Text>
+          <Text style={styles.ayuda}>YeferTasks · v2.3 · Datos en Firebase</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -205,14 +205,16 @@ export function AgregarScreen({navigation, route}: any) {
         )}
 
         <Text style={styles.etiqueta}>⏰ Recordar a las:</Text>
-        <TextInput
-          style={styles.input}
-          value={hora}
-          onChangeText={setHora}
-          keyboardType="numbers-and-punctuation"
-          placeholder="09:00"
-          placeholderTextColor={colores.textoSecundario}
-        />
+        <TouchableOpacity style={styles.selectorHora} onPress={() => {
+          const opciones = ['06:00', '07:00', '08:00', '09:00', '10:00', '12:00', '14:00', '18:00', '20:00'];
+          Alert.alert('¿A qué hora?', 'Selecciona la hora del recordatorio', [
+            ...opciones.map(h => ({text: h, onPress: () => setHora(h)})),
+            {text: 'Cancelar', style: 'cancel' as const},
+          ]);
+        }}>
+          <Text style={styles.selectorHoraTexto}>🕐 {hora}</Text>
+          <Text style={styles.selectorHoraFlecha}>Cambiar ›</Text>
+        </TouchableOpacity>
 
         <View style={styles.filaSwitch}>
           <View style={{flex: 1}}>
@@ -310,6 +312,21 @@ const styles = StyleSheet.create({
     ...sombras.sm,
   },
   selectorTexto: {fontSize: 16, color: colores.texto},
+  selectorHora: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colores.tarjeta,
+    borderRadius: radios.boton,
+    borderWidth: 1.5,
+    borderColor: colores.primarioBorde,
+    paddingHorizontal: espaciado.base,
+    paddingVertical: espaciado.base - 2,
+    marginBottom: espaciado.sm,
+    ...sombras.sm,
+  },
+  selectorHoraTexto: {fontSize: 16, fontWeight: '700', color: colores.primario},
+  selectorHoraFlecha: {fontSize: 14, fontWeight: '600', color: colores.primarioOscuro},
   calendarioContainer: {
     marginBottom: espaciado.md,
     borderRadius: radios.tarjeta,
