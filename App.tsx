@@ -7,6 +7,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {SafeAreaProvider, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {ProveedorAuth, useAuth} from './src/context/AuthContext';
 import {inicializarCanales, pedirPermiso} from './src/services/recordatorios';
+import notifee, {EventType} from '@notifee/react-native';
 import {LoginScreen} from './src/screens/LoginScreen';
 import {RegistroScreen} from './src/screens/RegistroScreen';
 import {InicioScreen} from './src/screens/InicioScreen';
@@ -186,6 +187,20 @@ export default function App() {
   React.useEffect(() => {
     inicializarCanales().catch(() => {});
     pedirPermiso().catch(() => {});
+
+    // notifee: handler para notificaciones en background (app cerrada/minimizada)
+    notifee.onBackgroundEvent(async ({type, detail}) => {
+      if (type === EventType.PRESS) {
+        // Usuario tocó la notificación desde la barra
+      }
+    });
+
+    // notifee: handler para notificaciones en foreground (app abierta)
+    notifee.onForegroundEvent(async ({type, detail}) => {
+      if (type === EventType.PRESS) {
+        // Usuario tocó la notificación
+      }
+    });
   }, []);
 
   return (

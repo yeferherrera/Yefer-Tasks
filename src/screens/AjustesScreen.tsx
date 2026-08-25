@@ -70,14 +70,14 @@ export function AjustesScreen() {
     }
 
     try {
-      await notifee.cancelTriggerNotification('test-notificacion');
+      await notifee.cancelTriggerNotification('test-trigger-notificacion');
     } catch {}
 
     const enviado = await enviarNotificacionPrueba();
     Alert.alert(
-      enviado ? '✅ Notificación programada' : '⚠️ No se pudo enviar',
+      enviado ? '✅ Notificaciones programadas' : '⚠️ No se pudo enviar',
       enviado
-        ? 'Espera 5 segundos. Te llegará una notificación para confirmar que todo funciona.'
+        ? 'Te llegaron 2 notificaciones:\n\n1. Una AHORA (inmediata)\n2. Otra en 10 SEGUNDOS (trigger)\n\nSi la segunda llega sin abrir la app, todo funciona.'
         : 'No se pudo enviar. Revisa que las notificaciones estén activas en los ajustes del celular.',
     );
   }

@@ -118,8 +118,8 @@ export async function cancelarRecordatorios(item: Item): Promise<void> {
   await notifee.cancelTriggerNotification(`${item.id}-${d - 1}`);
 }
 
-/** Envía una notificación de prueba programada para 5 segundos.
- *  Así funciona sin importar si la app está abierta o cerrada. */
+/** Envía una notificación de prueba inmediata + una programada para 10 segundos.
+ *  Así el usuario ve que funciona sin abrir la app. */
 export async function enviarNotificacionPrueba(): Promise<boolean> {
   try {
     // 1. Asegurar que el canal existe
@@ -131,13 +131,25 @@ export async function enviarNotificacionPrueba(): Promise<boolean> {
       vibration: true,
     });
 
-    // 2. Programar notificación para 5 segundos (funciona sin app abierta)
-    const timestamp = Date.now() + 5 * 1000;
+    // 2. Notificación INMEDIATA (se ve al instante si la app está abierta)
+    await notifee.displayNotification({
+      title: '✅ YeferTasks - Probando',
+      body: 'Esta notificación es inmediata. Cierra la app y espera 10 segundos...',
+      android: {
+        channelId: CANAL_ID,
+        pressAction: {id: 'default'},
+        sound: 'default',
+        smallIcon: 'ic_launcher',
+        importance: AndroidImportance.HIGH,
+      },
+    });
+
+    // 3. Notificación PROGRAMADA para 10 segundos (prueba de trigger)
     await notifee.createTriggerNotification(
       {
-        id: 'test-notificacion',
-        title: '✅ YeferTasks - Funciona!',
-        body: 'Las notificaciones están activas. Recibirás recordatorios de tus pagos y tareas.',
+        id: 'test-trigger-notificacion',
+        title: '✅ YeferTasks - Trigger funciona!',
+        body: 'Esta notificación se programó 10 segundos. Llega aunque la app esté cerrada.',
         android: {
           channelId: CANAL_ID,
           pressAction: {id: 'default'},
@@ -148,7 +160,7 @@ export async function enviarNotificacionPrueba(): Promise<boolean> {
       },
       {
         type: TriggerType.TIMESTAMP,
-        timestamp: timestamp,
+        timestamp: Date.now() + 10 * 1000,
       },
     );
     return true;

@@ -8,12 +8,13 @@
     <!-- Mantener el servicio de la burbuja activo -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <!-- Alarmas programadas para recordatorios (Android 12+) -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Alarmas programadas para recordatorios (Android 14+) -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <!-- Re-programar alarmas después de reiniciar el celular -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Wake lock para que las alarmas se ejecuten aunque el celular esté dormido -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
       android:name=".MainApplication"
